@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="AI掼蛋 - 答10题测一测你的掼蛋实力，即刻获得段位认证">
+    <title>AI掼蛋</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
+    <link rel="stylesheet" href="css/style.css?v=2">
+
+    <!-- QR Code generator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+
+<!-- ===== SPLASH SCREEN ===== -->
+<div id="splash-screen" class="v2">
+    <!-- Background layers -->
+    <div class="splash-bg">
+        <div class="bg-grid"></div>
+        <div class="bg-rings"></div>
+        <div class="bg-glow"></div>
+        <div class="bokeh-particle"></div>
+        <div class="bokeh-particle"></div>
+        <div class="bokeh-particle"></div>
+        <div class="bokeh-particle"></div>
+    </div>
+
+    <!-- Content -->
+    <div class="splash-wrap">
+        <!-- Top badge -->
+        <div class="splash-badge">
+            <span class="dot"></span>
+            <span>AI POWERED</span>
+            <span class="sep">·</span>
+            <span class="muted">掼蛋实力测评</span>
+        </div>
+
+        <!-- Brand -->
+        <div class="splash-brand">
+            <div class="brand-mark">
+                <span class="mark-inner">🃏</span>
+            </div>
+            <div class="brand-text">
+                <div class="splash-logo">GUANDAN</div>
+                <div class="splash-subtitle">AI SKILL RATING</div>
+            </div>
+        </div>
+
+        <!-- Tagline -->
+        <div class="splash-tagline">
+            用 <span class="hl">AI</span> 测一测你的掼蛋水平<br>
+            答 <span class="hl">10 题</span> · 即刻获得实力认证
+        </div>
+
+        <!-- CTA -->
+        <div class="splash-cta">
+            <button id="btn-start" class="splash-btn v2">START — 经典题库</button>
+            <button id="btn-start-ai" class="splash-btn v2" style="margin-top:12px;background:linear-gradient(135deg,#6e3aff,#00d4ff);font-size:.95rem;">✨ AI 出题 — 每次全新</button>
+            <div class="splash-note" id="splash-tested"></div>
+        </div>
+
+        <div class="splash-footer">AI掼蛋 · 经典题库 / Kimi AI 出题</div>
+    </div>
+</div>
+
+<!-- ===== QUIZ SCREEN ===== -->
+<div id="quiz-screen">
+    <!-- Top: progress bar + close -->
+    <div class="quiz-header">
+        <div class="quiz-progress-bar">
+            <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
+        </div>
+        <div class="quiz-progress-label" id="quiz-progress-label">1 / 10</div>
+        <button class="quiz-close-btn" id="btn-quiz-close">×</button>
+    </div>
+
+    <!-- Question area -->
+    <div class="quiz-body">
+        <div class="quiz-meta">
+            <span class="quiz-cat" id="quiz-cat">基础规则</span>
+            <span class="quiz-dots" id="quiz-dots"></span>
+        </div>
+        <div class="quiz-question" id="quiz-question">题目文字</div>
+    </div>
+
+    <!-- Options (JS-populated) -->
+    <div class="quiz-options" id="quiz-options"></div>
+
+    <!-- Explanation + next button (shown after answering) -->
+    <div class="quiz-feedback hidden" id="quiz-feedback">
+        <div class="quiz-explain" id="quiz-explain"></div>
+        <button class="quiz-next-btn" id="btn-quiz-next">下一题 →</button>
+    </div>
+</div>
+
+<!-- ===== RESULT SCREEN ===== -->
+<div id="result-screen">
+    <div class="result-scroll">
+
+        <!-- Hero outcome banner -->
+        <div class="result-hero" id="result-hero">
+            <div class="result-hero-glow"></div>
+            <div id="result-title" class="rout-title">优秀</div>
+            <div class="result-outcome-meta">
+                <span id="result-subtitle" class="rout-pos">黄金段</span>
+                <span class="rout-sep">·</span>
+                <span id="result-elo-change" class="rout-delta">超越 50% 玩家</span>
+            </div>
+        </div>
+
+        <!-- MAIN: Skill rating -->
+        <div class="result-skill-main">
+            <div class="result-tier-icon" id="result-tier-icon">🏅</div>
+            <div class="result-skill-index-label">掼蛋知识得分</div>
+            <div class="result-skill-index" id="result-skill-index">--</div>
+            <div class="result-stars" id="result-stars"></div>
+            <div class="result-skill-level" id="result-skill-level">实力等级 · 黄金</div>
+            <div class="result-legend-rank" id="result-legend-rank" style="display:none">
+                传说 #<span id="result-legend-num">999</span>
+            </div>
+            <div class="result-elo-lock" id="result-elo-lock" style="display:none">
+                再完成 <span id="result-lock-remain">2</span> 场或获得头游解锁
+            </div>
+        </div>
+
+        <!-- Quiz detail line -->
+        <div class="result-quiz-detail" id="result-quiz-detail">-- / 10 答对 · 用时 --:--</div>
+
+        <!-- QR section -->
+        <div class="result-qr-section">
+            <div class="result-qr-box" id="result-qr-box"></div>
+            <div class="result-qr-label">扫码挑战 AI 掼蛋</div>
+            <div class="result-qr-url">aiguandan.au</div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="result-buttons">
+            <button id="btn-again" class="result-btn btn-again">再测一次</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== SHARE MODAL ===== -->
+<div id="share-modal">
+    <div class="share-card-container" id="share-card-area"></div>
+    <div class="share-buttons">
+        <button id="share-save-btn" class="share-btn share-save">保存图片</button>
+        <button id="share-close-btn" class="share-btn share-close">关闭</button>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" style="opacity:0"></div>
+
+<script>window.G = {};</script>
+<script src="js/quiz-data.js?v=2"></script>
+<script src="js/quiz.js?v=2"></script>
+<script src="js/share.js?v=2"></script>
+<script src="js/app.js?v=2"></script>
+
+<!-- Register Service Worker -->
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+}
+</script>
+
+</body>
+</html>
