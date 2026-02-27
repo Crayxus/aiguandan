@@ -5,7 +5,7 @@
   const SITE_URL = (function() {
     const h = window.location.href.split('?')[0];
     if (h.startsWith('file://') || h.includes('localhost') || h.includes('127.0.0.1')) {
-      return 'https://aiguandan.onrender.com';
+      return 'https://aiguandan.au';
     }
     return h;
   })();
