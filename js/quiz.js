@@ -224,7 +224,9 @@
       // Show explanation
       const explainEl = document.getElementById('quiz-explain');
       if (explainEl) {
-        explainEl.textContent = (isCorrect ? '✓ 正确！  ' : '✗ 答错了  ') + q.explanation;
+        const raw = q.explanation || '';
+        const short = raw.length > 60 ? raw.slice(0, 58) + '…' : raw;
+        explainEl.textContent = (isCorrect ? '✓ ' : '✗ ') + short;
         explainEl.className = 'quiz-explain ' + (isCorrect ? 'correct' : 'wrong');
       }
 
