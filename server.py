@@ -73,7 +73,7 @@ PROMPT_TEMPLATE = """你是一位掼蛋扑克专家，请生成一道高质量�
   "category": "{category}",
   "difficulty": {difficulty},
   "points": {points},
-  "text": "题目描述（有scene时文字只说明问题，不必重复牌面）",
+  "text": "一句话问题（有scene时严禁描述任何牌面，只问'应该怎么做'或'哪项正确'）",
   "options": ["A. 选项一", "B. 选项二", "C. 选项三", "D. 选项四"],
   "answer": 0,
   "explanation": "极简解析（40字以内）",
@@ -91,6 +91,7 @@ PROMPT_TEMPLATE = """你是一位掼蛋扑克专家，请生成一道高质量�
 
 注意：
 - answer 是正确答案的索引，0=A，1=B，2=C，3=D
+- 【重要】有scene时，text字段禁止出现任何牌名（如"A♠""三张7"等），只写问题本身，例如："此时最优出牌是？"
 - table_player 填出牌方："partner"对家,"left_opp"左家,"right_opp"右家,"hero"自己首出
 - hero_hand 用 ♠♥♦♣ 表示花色；级牌后加*如 "7*♠"；大小王写"大王"或"小王"
 - table_play 轮到自己首出时写 []
