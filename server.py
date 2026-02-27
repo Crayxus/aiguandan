@@ -99,7 +99,7 @@ PROMPT_TEMPLATE = """你是一位掼蛋扑克专家，请生成一道高质量�
 - 纯规则/概念题（无牌局场景）scene 设为 null"""
 
 
-def _call_kimi(prompt: str) -> str:
+def _call_kimi(prompt: str, temperature: float = 0.3, max_tokens: int = 1200, timeout: int = 20) -> str:
     """调用 Kimi API，返回文本"""
     import urllib.request
     headers = {
@@ -109,17 +109,54 @@ def _call_kimi(prompt: str) -> str:
     body = json.dumps({
         "model": MODEL,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.3,
-        "max_tokens": 1200,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
     }).encode()
 
     req = urllib.request.Request(
         f"{BASE_URL}/chat/completions",
         data=body, headers=headers, method="POST"
     )
-    with urllib.request.urlopen(req, timeout=20) as resp:
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
         data = json.loads(resp.read())
     return data["choices"][0]["message"]["content"]
+
+
+def _verify_question(q: dict) -> bool:
+    """二次验证：让 AI 检查题目是否有逻辑错误，有 scene 时才验证"""
+    if not q.get("scene"):
+        return True  # 纯规则题跳过验证
+
+    scene = q["scene"]
+    hero_hand = scene.get("hero_hand", [])
+    table_play = scene.get("table_play", [])
+    correct = q["options"][q["answer"]]
+    wrong = [o for i, o in enumerate(q["options"]) if i != q["answer"]]
+
+    verify_prompt = f"""你是掼蛋规则裁判，快速检查以下题目是否存在错误。
+
+手牌：{hero_hand}
+桌面出牌：{table_play if table_play else "无（首出）"}
+正确答案：{correct}
+错误选项：{wrong}
+
+检查：
+1. 正确答案所需的牌是否全在手牌中（逐张核对）
+2. 正确答案是否真的能管住桌面出牌
+3. 错误选项是否确实不正确
+
+只输出JSON，不要任何其他内容：
+{{"ok": true}} 或 {{"ok": false, "reason": "具体错误说明"}}"""
+
+    try:
+        raw = _call_kimi(verify_prompt, temperature=0, max_tokens=80, timeout=12)
+        m = re.search(r'\{[\s\S]*\}', raw)
+        if m:
+            result = json.loads(m.group())
+            return bool(result.get("ok", True))
+    except Exception:
+        pass
+    return True  # 验证超时或失败则放行
 
 
 def _parse_question(raw: str, question_id: int) -> dict:
@@ -201,14 +238,22 @@ def ai_question():
         points=points,
     )
 
-    try:
-        raw = _call_kimi(prompt)
-        question = _parse_question(raw, question_id=100 + q_index)
-        return jsonify({"ok": True, "question": question})
-    except Exception as e:
-        # 把原始返回也带上，方便调试
-        raw_preview = locals().get('raw', '')[:300] if 'raw' in locals() else '(no response)'
-        return jsonify({"ok": False, "error": str(e), "raw": raw_preview}), 500
+    last_question = None
+    for attempt in range(2):
+        try:
+            raw = _call_kimi(prompt)
+            question = _parse_question(raw, question_id=100 + q_index)
+            last_question = question
+            if _verify_question(question):
+                return jsonify({"ok": True, "question": question})
+            # 验证失败，第一次自动重试，第二次直接放行
+        except Exception as e:
+            raw_preview = locals().get('raw', '')[:300] if 'raw' in locals() else '(no response)'
+            if attempt == 1 or last_question is None:
+                return jsonify({"ok": False, "error": str(e), "raw": raw_preview}), 500
+
+    # 两次都未通过验证，返回最后一次结果（总比没有好）
+    return jsonify({"ok": True, "question": last_question})
 
 
 @app.route("/api/health")
