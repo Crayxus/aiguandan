@@ -20,7 +20,7 @@ from flask import Flask, send_from_directory, jsonify, request
 # ── 配置 ──────────────────────────────────────────────────────────────────────
 API_KEY   = os.environ.get("KIMI_API_KEY", "")
 BASE_URL  = "https://api.moonshot.cn/v1"
-MODEL     = "moonshot-v1-8k"
+MODEL     = "moonshot-v1-32k"
 PORT      = int(os.environ.get("PORT", 8080))
 
 ROOT_DIR  = os.path.dirname(os.path.abspath(__file__))
@@ -107,7 +107,7 @@ def _call_kimi(prompt: str) -> str:
     body = json.dumps({
         "model": MODEL,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.85,
+        "temperature": 0.3,
         "max_tokens": 1200,
     }).encode()
 
