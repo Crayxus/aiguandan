@@ -214,11 +214,12 @@
         return;
       }
 
-      const text = `第${this.currentIdx + 1}题。${q.text}。` +
-        q.options.map(o => o.replace(/^[A-D]\.\s*/, m => {
-          const map = {'A. ':'选项A，','B. ':'选项B，','C. ':'选项C，','D. ':'选项D，'};
-          return map[m] || m;
-        })).join('。');
+      const labels = ['A', 'B', 'C', 'D'];
+      const optText = q.options.map((o, i) => {
+        const content = o.replace(/^[A-Da-d][\.\、\:：]\s*/, '');
+        return `选项${labels[i]}，${content}`;
+      }).join('。');
+      const text = `第${this.currentIdx + 1}题。${q.text}。${optText}`;
 
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'zh-CN';
