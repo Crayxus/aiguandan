@@ -57,19 +57,35 @@ PROMPT_TEMPLATE = """你是一位掼蛋扑克专家，请生成一道高质量�
 3. 四个选项（A/B/C/D），只有一个正确答案
 4. 答案要有实际意义，考察真实的掼蛋策略或规则
 5. 解析要具体，说明"为什么"而不只是"是什么"
+6. 若题目涉及具体牌局（出牌/跟牌/策略选择），必须生成 scene 字段展示牌面；纯规则/概念题 scene 设为 null
 
 请严格按照以下JSON格式输出，不要有任何额外内容：
 {{
   "category": "{category}",
   "difficulty": {difficulty},
   "points": {points},
-  "text": "题目内容",
+  "text": "题目描述（有scene时文字只说明问题，不必重复牌面）",
   "options": ["A. 选项一", "B. 选项二", "C. 选项三", "D. 选项四"],
   "answer": 0,
-  "explanation": "详细解析（100字以上）"
+  "explanation": "详细解析（100字以上）",
+  "scene": {{
+    "hero_hand": ["A♠","A♥","K♦","K♣","Q♠","J♥","10♠","9♦"],
+    "table_play": ["7♠","7♥","7♦"],
+    "table_player": "right_opp",
+    "partner_cards": 8,
+    "left_opp_cards": 10,
+    "right_opp_cards": 7,
+    "level": "7",
+    "hint": "右家出了三张7（级牌），轮到你出牌"
+  }}
 }}
 
-注意：answer 是正确答案的索引，0=A，1=B，2=C，3=D。"""
+注意：
+- answer 是正确答案的索引，0=A，1=B，2=C，3=D
+- table_player 填出牌方："partner"对家,"left_opp"左家,"right_opp"右家,"hero"自己首出
+- hero_hand 用 ♠♥♦♣ 表示花色；级牌后加*如 "7*♠"；大小王写"大王"或"小王"
+- table_play 轮到自己首出时写 []
+- 纯规则/概念题（无牌局场景）scene 设为 null"""
 
 
 def _call_kimi(prompt: str) -> str:
@@ -83,7 +99,7 @@ def _call_kimi(prompt: str) -> str:
         "model": MODEL,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.85,
-        "max_tokens": 800,
+        "max_tokens": 1200,
     }).encode()
 
     req = urllib.request.Request(
@@ -121,6 +137,7 @@ def _parse_question(raw: str, question_id: int) -> dict:
     q.setdefault("difficulty", 3)
     q.setdefault("points", 10)
     q.setdefault("category", "AI出题")
+    q.setdefault("scene", None)
     return q
 
 

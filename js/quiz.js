@@ -164,9 +164,18 @@
         }
       }
 
+      // Scene (visual card table — AI mode only)
+      const sceneEl = document.getElementById('quiz-scene');
+      if (sceneEl && window.SceneRenderer) {
+        window.SceneRenderer.renderScene(q.scene || null, sceneEl);
+      }
+
       // Question text
       const qEl = document.getElementById('quiz-question');
-      if (qEl) qEl.textContent = q.text;
+      if (qEl) {
+        qEl.textContent = q.text;
+        qEl.classList.toggle('has-scene', !!(q.scene));
+      }
 
       // Option buttons
       const optsEl = document.getElementById('quiz-options');
