@@ -178,7 +178,9 @@ def ai_question():
         question = _parse_question(raw, question_id=100 + q_index)
         return jsonify({"ok": True, "question": question})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        # 把原始返回也带上，方便调试
+        raw_preview = locals().get('raw', '')[:300] if 'raw' in locals() else '(no response)'
+        return jsonify({"ok": False, "error": str(e), "raw": raw_preview}), 500
 
 
 @app.route("/api/health")
