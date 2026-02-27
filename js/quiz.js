@@ -190,9 +190,44 @@
         });
       }
 
+      // Stop any ongoing TTS
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      const ttsBtn = document.getElementById('btn-tts');
+      if (ttsBtn) ttsBtn.classList.remove('speaking');
+
       // Hide feedback panel
       const feedbackEl = document.getElementById('quiz-feedback');
       if (feedbackEl) feedbackEl.classList.add('hidden');
+    }
+
+    /** TTS: read current question aloud */
+    _speak() {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const q = this._getQuestion(this.currentIdx);
+      if (!q) return;
+
+      const btn = document.getElementById('btn-tts');
+      // If already speaking, just stop
+      if (btn && btn.classList.contains('speaking')) {
+        btn.classList.remove('speaking');
+        return;
+      }
+
+      const text = `第${this.currentIdx + 1}题。${q.text}。` +
+        q.options.map(o => o.replace(/^[A-D]\.\s*/, m => {
+          const map = {'A. ':'选项A，','B. ':'选项B，','C. ':'选项C，','D. ':'选项D，'};
+          return map[m] || m;
+        })).join('。');
+
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'zh-CN';
+      utter.rate = 0.9;
+      utter.onend = () => btn && btn.classList.remove('speaking');
+      utter.onerror = () => btn && btn.classList.remove('speaking');
+
+      if (btn) btn.classList.add('speaking');
+      window.speechSynthesis.speak(utter);
     }
 
     /** Handle option selection */

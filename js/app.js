@@ -95,6 +95,10 @@
       window.Quiz.startAI();
     });
 
+    document.getElementById('btn-tts')?.addEventListener('click', () => {
+      window.Quiz._speak();
+    });
+
     document.getElementById('btn-quiz-next')?.addEventListener('click', () => {
       window.Quiz._next();
     });
