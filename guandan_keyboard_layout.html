@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>掼蛋专用键盘 Layout</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #fff; margin: 20px; }
+  h1 { text-align: center; color: #e94560; }
+  h2 { text-align: center; color: #aaa; font-weight: normal; }
+  .keyboard { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 30px auto; }
+  .row { display: flex; gap: 4px; }
+  .key {
+    width: 56px; height: 56px;
+    box-sizing: border-box;
+    border: 2px solid;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: bold;
+    cursor: pointer; user-select: none;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .key:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.4); filter: brightness(1.3); }
+  .key .sub { position: absolute; bottom: 3px; font-size: 9px; opacity: 0.6; }
+
+  /* Suit colors: 2 rows per suit */
+  /* Spades ♠ - dark/silver */
+  .suit-spade { background: #1a1a2e; border-color: #7f8c8d; color: #bdc3c7; }
+  .suit-spade.big-joker { background: linear-gradient(135deg, #e94560, #c0392b); border-color: #e94560; color: #fff; }
+  .suit-spade.small-joker { background: linear-gradient(135deg, #0f3460, #16213e); border-color: #4a90d9; color: #4a90d9; }
+
+  /* Hearts ♥ - red */
+  .suit-heart { background: #3a1020; border-color: #e74c3c; color: #f1948a; }
+  .suit-heart.big-joker { background: linear-gradient(135deg, #e94560, #c0392b); border-color: #e94560; color: #fff; }
+  .suit-heart.small-joker { background: linear-gradient(135deg, #0f3460, #16213e); border-color: #4a90d9; color: #4a90d9; }
+
+  /* Clubs ♣ - green */
+  .suit-club { background: #0d2818; border-color: #27ae60; color: #82e0aa; }
+  .suit-club.big-joker { background: linear-gradient(135deg, #e94560, #c0392b); border-color: #e94560; color: #fff; }
+  .suit-club.small-joker { background: linear-gradient(135deg, #0f3460, #16213e); border-color: #4a90d9; color: #4a90d9; }
+
+  /* Diamonds ♦ - blue */
+  .suit-diamond { background: #0d1b2a; border-color: #3498db; color: #85c1e9; }
+  .suit-diamond.big-joker { background: linear-gradient(135deg, #e94560, #c0392b); border-color: #e94560; color: #fff; }
+  .suit-diamond.small-joker { background: linear-gradient(135deg, #0f3460, #16213e); border-color: #4a90d9; color: #4a90d9; }
+
+  .spacer { width: 56px; height: 56px; }
+
+  .empty { width: 56px; height: 56px; box-sizing: border-box; border: 2px solid transparent; border-radius: 8px; }
+
+  /* All keys start dark before dealing */
+  .key.dark {
+    opacity: 0.06;
+    filter: grayscale(1) brightness(0.3);
+  }
+
+  /* Card landing — glow flash only, NO transform/scale/rotate */
+  @keyframes cardLand {
+    0%   { opacity: 0.3; box-shadow: 0 0 50px 20px currentColor; filter: brightness(2.5); }
+    60%  { opacity: 1;   box-shadow: 0 0 24px 8px currentColor;  filter: brightness(1.8); }
+    100% { opacity: 1;   box-shadow: 0 0 14px 3px currentColor;  filter: brightness(1.5) saturate(1.3); }
+  }
+
+  .key.dealing {
+    animation: cardLand 0.4s ease-out forwards;
+    z-index: 2;
+  }
+
+  /* Settled card — pure visual, zero transform */
+  .key.lit {
+    box-shadow: 0 0 14px 3px currentColor, inset 0 0 10px rgba(255,255,255,0.1);
+    z-index: 2;
+    filter: brightness(1.5) saturate(1.3);
+    opacity: 1;
+  }
+
+  /* Undealt keys — visible grid */
+  .key.dim {
+    opacity: 0.25;
+    filter: grayscale(0.6) brightness(0.5);
+  }
+
+  /* After sort compress */
+  .key.sorted {
+    box-shadow: 0 0 16px 4px currentColor, inset 0 0 12px rgba(255,255,255,0.15);
+    filter: brightness(1.6) saturate(1.4);
+  }
+
+  /* Deal button */
+  .deal-section { text-align: center; margin: 16px; }
+  .deal-btn {
+    background: linear-gradient(135deg, #e94560, #c0392b); color: #fff; border: none;
+    padding: 12px 32px; border-radius: 8px; font-size: 16px; font-weight: bold;
+    cursor: pointer; transition: all 0.2s; margin: 5px;
+  }
+  .deal-btn:hover { transform: scale(1.05); box-shadow: 0 4px 20px rgba(233,69,96,0.5); }
+  .deal-btn.secondary { background: linear-gradient(135deg, #2d3436, #636e72); }
+  .deal-btn.secondary:hover { box-shadow: 0 4px 20px rgba(99,110,114,0.5); }
+
+  #hand-info {
+    text-align: center; margin: 10px; color: #aaa; font-size: 14px;
+    min-height: 24px;
+  }
+
+  .info { text-align: center; margin: 20px; color: #888; font-size: 14px; }
+  .stats { display: flex; justify-content: center; gap: 40px; margin: 20px; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 36px; color: #e94560; font-weight: bold; }
+  .stat .label { font-size: 12px; color: #888; }
+
+  .export-section { text-align: center; margin: 30px; }
+  .export-section button {
+    background: #e94560; color: #fff; border: none; padding: 10px 24px;
+    border-radius: 6px; font-size: 14px; cursor: pointer; margin: 5px;
+  }
+  .export-section button:hover { background: #c0392b; }
+  #kle-output {
+    background: #16213e; color: #7fb3d8; padding: 16px; border-radius: 8px;
+    font-family: monospace; font-size: 12px; white-space: pre-wrap;
+    max-width: 1100px; margin: 16px auto; display: none; text-align: left;
+    max-height: 400px; overflow-y: auto;
+  }
+
+  .dimensions {
+    text-align: center; color: #666; font-size: 13px; margin-top: 10px;
+  }
+
+  /* === RGB Light Effects === */
+  .rgb-bar {
+    display: flex; justify-content: center; gap: 8px; margin: 16px;
+    flex-wrap: wrap;
+  }
+  .rgb-btn {
+    padding: 8px 16px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05); color: #aaa; font-size: 12px;
+    cursor: pointer; transition: all 0.2s; font-weight: 600;
+  }
+  .rgb-btn:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+  .rgb-btn.active { border-color: #e94560; color: #fff; background: rgba(233,69,96,0.2); box-shadow: 0 0 12px rgba(233,69,96,0.3); }
+
+  /* Breathing — slow hue cycle on each key */
+  @keyframes rgbBreathe {
+    0%   { filter: brightness(0.6) saturate(0.8) hue-rotate(0deg); }
+    25%  { filter: brightness(1.3) saturate(1.4) hue-rotate(60deg); }
+    50%  { filter: brightness(1.6) saturate(1.6) hue-rotate(120deg); }
+    75%  { filter: brightness(1.3) saturate(1.4) hue-rotate(240deg); }
+    100% { filter: brightness(0.6) saturate(0.8) hue-rotate(360deg); }
+  }
+  .rgb-breathe .key {
+    animation: rgbBreathe 4s ease-in-out infinite;
+  }
+  /* Stagger per key for wave feel */
+  .rgb-breathe .key { animation-delay: calc(var(--ki) * 0.08s); }
+
+  /* Rainbow Wave — horizontal sweep */
+  @keyframes rgbWave {
+    0%   { filter: brightness(1.2) hue-rotate(0deg); box-shadow: 0 0 8px 2px currentColor; }
+    50%  { filter: brightness(1.8) hue-rotate(180deg); box-shadow: 0 0 16px 4px currentColor; }
+    100% { filter: brightness(1.2) hue-rotate(360deg); box-shadow: 0 0 8px 2px currentColor; }
+  }
+  .rgb-wave .key {
+    animation: rgbWave 3s ease-in-out infinite;
+    animation-delay: calc(var(--ci) * 0.15s);
+  }
+
+  /* Ripple — radial pulse from center */
+  @keyframes rgbRipple {
+    0%   { filter: brightness(0.5); box-shadow: none; }
+    50%  { filter: brightness(2) saturate(2) hue-rotate(var(--hue)); box-shadow: 0 0 20px 6px currentColor; }
+    100% { filter: brightness(0.5); box-shadow: none; }
+  }
+  .rgb-ripple .key {
+    animation: rgbRipple 2.5s ease-in-out infinite;
+    animation-delay: calc(var(--dist) * 0.12s);
+  }
+
+  /* Starfield — random twinkle */
+  @keyframes rgbStar {
+    0%,100% { filter: brightness(0.4); opacity: 0.3; }
+    50%     { filter: brightness(2) saturate(2) hue-rotate(var(--hue)); opacity: 1; box-shadow: 0 0 14px 4px currentColor; }
+  }
+  .rgb-star .key {
+    animation: rgbStar 2s ease-in-out infinite;
+    animation-delay: calc(var(--rand) * 3s);
+  }
+
+  /* Rain — top to bottom cascade */
+  @keyframes rgbRain {
+    0%   { filter: brightness(0.4); opacity: 0.2; }
+    30%  { filter: brightness(1.8) saturate(1.5) hue-rotate(var(--hue)); opacity: 1; box-shadow: 0 0 12px 3px currentColor; }
+    100% { filter: brightness(0.4); opacity: 0.2; }
+  }
+  .rgb-rain .key {
+    animation: rgbRain 1.8s ease-out infinite;
+    animation-delay: calc(var(--ri) * 0.2s + var(--ci) * 0.05s);
+  }
+
+  /* Reactive — only lit/sorted keys pulse */
+  @keyframes rgbReact {
+    0%,100% { filter: brightness(1.4) saturate(1.3); }
+    50%     { filter: brightness(2) saturate(2) hue-rotate(30deg); box-shadow: 0 0 24px 8px currentColor; }
+  }
+  .rgb-reactive .key.lit,
+  .rgb-reactive .key.sorted {
+    animation: rgbReact 1.5s ease-in-out infinite;
+    animation-delay: calc(var(--ci) * 0.1s);
+  }
+</style>
+</head>
+<body>
+
+<h1>掼蛋专用键盘 Layout</h1>
+<h2>Guandan Card Keyboard — 108 Keys</h2>
+
+<div class="stats">
+  <div class="stat"><div class="num">108</div><div class="label">总键数</div></div>
+  <div class="stat"><div class="num">2</div><div class="label">大王</div></div>
+  <div class="stat"><div class="num">2</div><div class="label">小王</div></div>
+  <div class="stat"><div class="num">13×8</div><div class="label">点数×副数</div></div>
+</div>
+
+<div class="deal-section">
+  <button class="deal-btn" onclick="dealHand()">发牌 (27张)</button>
+  <button class="deal-btn secondary" onclick="clearHand()">清除</button>
+</div>
+
+<div class="rgb-bar" id="rgb-bar">
+  <span style="color:#555;font-size:12px;line-height:36px;">灯效:</span>
+  <button class="rgb-btn" onclick="setRGB('off')">关闭</button>
+  <button class="rgb-btn" onclick="setRGB('breathe')">呼吸</button>
+  <button class="rgb-btn" onclick="setRGB('wave')">彩虹波</button>
+  <button class="rgb-btn" onclick="setRGB('ripple')">涟漪</button>
+  <button class="rgb-btn" onclick="setRGB('star')">星空</button>
+  <button class="rgb-btn" onclick="setRGB('rain')">流光雨</button>
+  <button class="rgb-btn" onclick="setRGB('reactive')">触发</button>
+</div>
+<div id="hand-info"></div>
+
+<div class="keyboard" id="keyboard"></div>
+
+<div class="dimensions" id="dims"></div>
+
+<div class="export-section">
+  <button onclick="showKLE()">导出 KLE JSON</button>
+  <button onclick="downloadSVG()">下载 SVG</button>
+  <button onclick="downloadDXF()">下载 DXF (定位板)</button>
+  <div id="kle-output"></div>
+</div>
+
+<div class="info">
+  <p>布局：15列(2王+13点数) × 8行 | 键距: 19.05mm | 每2行=1花色(♠♥♣♦各2副)</p>
+  <p>用 KLE JSON 导入 <a href="http://www.keyboard-layout-editor.com" style="color:#4a90d9">keyboard-layout-editor.com</a> →
+  <a href="http://builder.swillkb.com" style="color:#4a90d9">swillkb.com</a> 生成定位板 DXF</p>
+</div>
+
+<script>
+// Order: 大王 小王 2 A K Q J T 9 8 7 6 5 4 3
+const RANKS = ['2','A','K','Q','J','T','9','8','7','6','5','4','3'];
+
+// 4 suits × 2 rows each = 8 rows
+const SUITS = [
+  { name: '♠', cls: 'suit-spade',   label: '♠' },
+  { name: '♥', cls: 'suit-heart',   label: '♥' },
+  { name: '♣', cls: 'suit-club',    label: '♣' },
+  { name: '♦', cls: 'suit-diamond', label: '♦' },
+];
+
+function buildKeyboard() {
+  const kb = document.getElementById('keyboard');
+
+  let rowIdx = 0;
+  for (const suit of SUITS) {
+    for (let dup = 0; dup < 2; dup++) {
+      rowIdx++;
+      const row = document.createElement('div');
+      row.className = 'row';
+
+      const r = rowIdx - 1; // 0-based row index
+      // Joker columns: only last 2 rows (6,7) have jokers, others use empty placeholders
+      if (r >= 6) {
+        row.appendChild(makeKey('大王', `${suit.cls} big-joker`, suit.label, r, 0));
+        row.appendChild(makeKey('小王', `${suit.cls} small-joker`, suit.label, r, 1));
+      } else {
+        row.appendChild(makeEmpty());
+        row.appendChild(makeEmpty());
+      }
+
+      // 13 rank keys
+      for (let ci = 0; ci < RANKS.length; ci++) {
+        row.appendChild(makeKey(RANKS[ci], suit.cls, suit.label, r, ci + 2));
+      }
+      kb.appendChild(row);
+    }
+  }
+
+  // Dimensions
+  const TOTAL_COLS = 15;
+  const mmW = (TOTAL_COLS * 19.05).toFixed(1);
+  const mmH = (8 * 19.05).toFixed(1);
+  document.getElementById('dims').textContent =
+    `物理尺寸约 ${mmW}mm × ${mmH}mm (${(mmW/25.4).toFixed(1)}" × ${(mmH/25.4).toFixed(1)}")`;
+}
+
+let keyIndex = 0;
+function makeKey(label, cls, sub, row, col) {
+  const key = document.createElement('div');
+  key.className = `key ${cls}`;
+  key.dataset.idx = keyIndex++;
+  key.dataset.card = label;
+  key.dataset.suit = sub || '';
+  key.dataset.row = row;
+  key.dataset.col = col;
+  key.textContent = label;
+  if (sub) {
+    const s = document.createElement('span');
+    s.className = 'sub';
+    s.textContent = sub;
+    key.appendChild(s);
+  }
+  return key;
+}
+
+function makeSpacer() {
+  const s = document.createElement('div');
+  s.className = 'spacer';
+  return s;
+}
+
+function makeEmpty() {
+  const s = document.createElement('div');
+  s.className = 'empty';
+  return s;
+}
+
+// KLE JSON generation
+function generateKLE() {
+  const rows = [];
+  rows.push({name: "掼蛋键盘 Guandan Keyboard", author: "CRAYXUS"});
+
+  const suitColors = [
+    { bg: "#1a1a2e", fg: "#bdc3c7" }, // spade
+    { bg: "#3a1020", fg: "#f1948a" }, // heart
+    { bg: "#0d2818", fg: "#82e0aa" }, // club
+    { bg: "#0d1b2a", fg: "#85c1e9" }, // diamond
+  ];
+
+  let rowIdx = 0;
+  for (let s = 0; s < 4; s++) {
+    for (let dup = 0; dup < 2; dup++) {
+      rowIdx++;
+      const row = [];
+      const sc = suitColors[s];
+
+      // Joker keys (only last 2 rows: 7-8)
+      if (rowIdx >= 7) {
+        row.push({c: "#c0392b", t: "#ffffff"});
+        row.push("大王");
+        row.push({c: "#0f3460", t: "#4a90d9"});
+        row.push("小王");
+      } else {
+        row.push({x: 2}); // skip 2 columns
+      }
+
+      // 13 rank keys
+      row.push({c: sc.bg, t: sc.fg});
+      for (const rank of RANKS) {
+        row.push(rank);
+      }
+      rows.push(row);
+    }
+  }
+
+  return JSON.stringify(rows, null, 2);
+}
+
+function showKLE() {
+  const el = document.getElementById('kle-output');
+  if (el.style.display === 'block') { el.style.display = 'none'; return; }
+  el.textContent = generateKLE();
+  el.style.display = 'block';
+}
+
+// SVG download
+function downloadSVG() {
+  const U = 60;
+  const GAP = 4;
+  const COLS = 15;
+  const ROWS = 8;
+  const W = COLS * U;
+  const H = ROWS * U;
+
+  const suitStyles = [
+    { fill: '#1a1a2e', stroke: '#7f8c8d', text: '#bdc3c7', sym: '♠' },
+    { fill: '#3a1020', stroke: '#e74c3c', text: '#f1948a', sym: '♥' },
+    { fill: '#0d2818', stroke: '#27ae60', text: '#82e0aa', sym: '♣' },
+    { fill: '#0d1b2a', stroke: '#3498db', text: '#85c1e9', sym: '♦' },
+  ];
+
+  let svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+<rect width="${W}" height="${H}" fill="#1a1a2e"/>
+<style>
+  .key-bg { rx: 4; ry: 4; stroke-width: 1.5; }
+  .key-label { font-family: Arial, sans-serif; font-weight: bold; text-anchor: middle; dominant-baseline: central; }
+  .key-sub { font-family: Arial, sans-serif; font-size: 8px; text-anchor: middle; opacity: 0.5; }
+</style>
+`;
+
+  function addKey(x, y, label, fill, stroke, textColor, sub) {
+    const kx = x * U + GAP/2, ky = y * U + GAP/2;
+    const kw = U - GAP, kh = U - GAP;
+    svg += `<rect class="key-bg" x="${kx}" y="${ky}" width="${kw}" height="${kh}" fill="${fill}" stroke="${stroke}"/>
+<text class="key-label" x="${kx+kw/2}" y="${ky+kh/2}" fill="${textColor}" font-size="${label.length > 1 ? 14 : 20}">${label}</text>
+<text class="key-sub" x="${kx+kw/2}" y="${ky+kh-8}" fill="${textColor}">${sub}</text>
+`;
+  }
+
+  let rowIdx = 0;
+  for (let s = 0; s < 4; s++) {
+    const st = suitStyles[s];
+    for (let dup = 0; dup < 2; dup++) {
+      const y = rowIdx;
+      // Jokers (only last 2 rows: 6,7)
+      if (rowIdx >= 6) {
+        addKey(0, y, '大王', '#c0392b', '#e94560', '#fff', st.sym);
+        addKey(1, y, '小王', '#0f3460', '#4a90d9', '#4a90d9', st.sym);
+      }
+      // 13 rank keys starting at column 2
+      for (let r = 0; r < RANKS.length; r++) {
+        addKey(r + 2, y, RANKS[r], st.fill, st.stroke, st.text, st.sym);
+      }
+      rowIdx++;
+    }
+  }
+
+  svg += '</svg>';
+  const blob = new Blob([svg], {type: 'image/svg+xml'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'guandan_keyboard.svg';
+  a.click();
+}
+
+// DXF for plate cutouts (MX switch 14mm)
+function downloadDXF() {
+  const U = 19.05;
+  const CUTOUT = 14;
+  const COLS = 15;
+  const ROWS = 8;
+
+  let dxf = `0\nSECTION\n2\nENTITIES\n`;
+
+  function addRect(cx, cy) {
+    const x1 = cx - CUTOUT/2, y1 = cy - CUTOUT/2;
+    const x2 = cx + CUTOUT/2, y2 = cy + CUTOUT/2;
+    dxf += `0\nLINE\n8\n0\n10\n${x1}\n20\n${y1}\n11\n${x2}\n21\n${y1}\n`;
+    dxf += `0\nLINE\n8\n0\n10\n${x2}\n20\n${y1}\n11\n${x2}\n21\n${y2}\n`;
+    dxf += `0\nLINE\n8\n0\n10\n${x2}\n20\n${y2}\n11\n${x1}\n21\n${y2}\n`;
+    dxf += `0\nLINE\n8\n0\n10\n${x1}\n20\n${y2}\n11\n${x1}\n21\n${y1}\n`;
+  }
+
+  // Joker columns (only last 2 rows: 6-7)
+  for (let row = 6; row < 8; row++) {
+    addRect(0.5 * U, (row + 0.5) * U);
+    addRect(1.5 * U, (row + 0.5) * U);
+  }
+
+  // 13 rank columns for all 8 rows
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 2; col < COLS; col++) {
+      addRect((col + 0.5) * U, (row + 0.5) * U);
+    }
+  }
+
+  // Outer border
+  const ow = COLS * U, oh = ROWS * U, pad = 5;
+  dxf += `0\nLINE\n8\n1\n10\n${-pad}\n20\n${-pad}\n11\n${ow+pad}\n21\n${-pad}\n`;
+  dxf += `0\nLINE\n8\n1\n10\n${ow+pad}\n20\n${-pad}\n11\n${ow+pad}\n21\n${oh+pad}\n`;
+  dxf += `0\nLINE\n8\n1\n10\n${ow+pad}\n20\n${oh+pad}\n11\n${-pad}\n21\n${oh+pad}\n`;
+  dxf += `0\nLINE\n8\n1\n10\n${-pad}\n20\n${oh+pad}\n11\n${-pad}\n21\n${-pad}\n`;
+  dxf += `0\nENDSEC\n0\nEOF\n`;
+
+  const blob = new Blob([dxf], {type: 'application/dxf'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'guandan_plate.dxf';
+  a.click();
+}
+
+buildKeyboard();
+
+// === Deal Hand Feature ===
+function buildDeck() {
+  // 108 cards: 2大王 + 2小王 + 4suits × 2decks × 13ranks
+  // Each card maps to a key index on the keyboard
+  const allKeys = document.querySelectorAll('.key');
+  const deck = [];
+  allKeys.forEach(k => {
+    deck.push({ idx: k.dataset.idx, card: k.dataset.card, suit: k.dataset.suit, el: k });
+  });
+  return deck;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+const ROW_H = 60; // 56px key + 4px gap
+let dealTimer = null;
+
+function dealHand() {
+  // Cancel any ongoing deal
+  if (dealTimer) { clearTimeout(dealTimer); dealTimer = null; }
+
+  const deck = buildDeck();
+  const allKeys = document.querySelectorAll('.key');
+
+  // Reset everything
+  allKeys.forEach(k => {
+    k.classList.remove('lit', 'dim', 'dark', 'dealing', 'landed', 'sorted');
+    k.style.transition = 'none';
+    k.style.transform = '';
+    k.style.animation = '';
+  });
+
+  // Force reflow
+  void document.body.offsetHeight;
+
+  // Phase 0: All keys go dark — empty table
+  allKeys.forEach(k => { k.classList.add('dark'); });
+
+  // Shuffle full deck, take 27
+  shuffle(deck);
+  const hand = deck.slice(0, 27);
+  const handSet = new Set(hand.map(c => c.idx));
+
+  // Phase 1: Deal one by one in random order (like real dealing)
+  // Keep the shuffled order — feels natural
+  const DEAL_INTERVAL = 800; // ms between each card — 慢慢摸牌
+
+  hand.forEach((c, i) => {
+    dealTimer = setTimeout(() => {
+      // Card lands with glow
+      c.el.classList.remove('dark');
+      c.el.style.animation = 'none'; // reset animation
+      void c.el.offsetHeight; // force reflow
+      c.el.classList.add('dealing');
+
+      // After glow animation, settle to clean lit state
+      setTimeout(() => {
+        c.el.classList.remove('dealing');
+        c.el.style.animation = '';
+        c.el.classList.add('lit');
+      }, 420);
+
+      // Update counter live
+      document.getElementById('hand-info').textContent =
+        `发牌中... ${i + 1} / 27`;
+    }, i * DEAL_INTERVAL);
+  });
+
+  // Phase 2: After all cards dealt, show summary, pause, then compress
+  const allDealtTime = hand.length * DEAL_INTERVAL + 500;
+
+  dealTimer = setTimeout(() => {
+    // Show hand summary
+    const counts = {};
+    hand.forEach(c => { counts[c.card] = (counts[c.card] || 0) + 1; });
+    const order = ['大王','小王','2','A','K','Q','J','T','9','8','7','6','5','4','3'];
+    const summary = order
+      .filter(r => counts[r])
+      .map(r => `${r}×${counts[r]}`)
+      .join('  ');
+    document.getElementById('hand-info').textContent = `手牌 (27张): ${summary}`;
+
+    // Dim undealt keys
+    allKeys.forEach(k => {
+      if (k.classList.contains('dark')) {
+        k.classList.remove('dark');
+        k.style.transition = 'all 0.5s';
+        k.classList.add('dim');
+      }
+    });
+
+    // Phase 3: Clean all animation state, then compress after 1.5s
+    allKeys.forEach(k => {
+      k.style.animation = '';
+    });
+
+    dealTimer = setTimeout(() => {
+      document.getElementById('hand-info').textContent += '  ✦ 理牌中...';
+      sortAnimation(handSet, () => {
+        document.getElementById('hand-info').textContent = `手牌 (27张): ${summary}  ✦ 理牌完成`;
+      });
+    }, 1500);
+  }, allDealtTime);
+}
+
+function sortAnimation(handSet, onDone) {
+  const allKeys = document.querySelectorAll('.key');
+
+  // Group keys by column
+  const columns = {};
+  allKeys.forEach(k => {
+    const col = parseInt(k.dataset.col);
+    const row = parseInt(k.dataset.row);
+    if (!columns[col]) columns[col] = [];
+    columns[col].push({ el: k, row, isLit: handSet.has(k.dataset.idx) });
+  });
+
+  let colDelay = 0;
+  let maxDelay = 0;
+  const colOrder = Object.keys(columns).map(Number).sort((a, b) => a - b);
+
+  for (const col of colOrder) {
+    const keys = columns[col].sort((a, b) => a.row - b.row);
+    const litInCol = keys.filter(k => k.isLit);
+    const dimInCol = keys.filter(k => !k.isLit);
+
+    if (litInCol.length === 0 || litInCol.length === keys.length) continue;
+
+    const totalKeys = keys.length;
+    const delay = colDelay * 60; // fast cascade
+    maxDelay = Math.max(maxDelay, delay);
+
+    // Dim keys float to top (rows 0, 1, ...)
+    dimInCol.forEach((k, i) => {
+      const shift = (i - k.row) * ROW_H;
+      setTimeout(() => {
+        k.el.style.transition = 'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1)';
+        k.el.style.transform = `translateY(${shift}px)`;
+      }, delay);
+    });
+
+    // Lit keys fall to bottom (rows dimCount, dimCount+1, ...)
+    litInCol.forEach((k, i) => {
+      const targetRow = dimInCol.length + i;
+      const shift = (targetRow - k.row) * ROW_H;
+      setTimeout(() => {
+        k.el.style.transition = 'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1)';
+        k.el.style.transform = `translateY(${shift}px)`;
+        k.el.classList.add('sorted');
+        k.el.classList.remove('lit');
+      }, delay);
+    });
+
+    colDelay++;
+  }
+
+  if (onDone) {
+    setTimeout(onDone, maxDelay + 500);
+  }
+}
+
+function clearHand() {
+  if (dealTimer) { clearTimeout(dealTimer); dealTimer = null; }
+
+  const allKeys = document.querySelectorAll('.key');
+  // Animate everything back
+  allKeys.forEach(k => {
+    k.style.transition = 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)';
+    k.style.transform = '';
+  });
+  setTimeout(() => {
+    allKeys.forEach(k => {
+      k.classList.remove('lit', 'dim', 'dark', 'dealing', 'sorted');
+      k.style.transition = 'all 0.15s';
+      k.style.animation = '';
+      k.style.transform = '';
+    });
+  }, 550);
+  document.getElementById('hand-info').textContent = '';
+}
+
+// ===== RGB Light Effects =====
+const RGB_MODES = ['off','breathe','wave','ripple','star','rain','reactive'];
+let currentRGB = 'off';
+
+function setRGB(mode) {
+  const kb = document.getElementById('keyboard');
+  // Remove all rgb classes
+  RGB_MODES.forEach(m => kb.classList.remove(`rgb-${m}`));
+  // Update button states
+  document.querySelectorAll('.rgb-btn').forEach(b => b.classList.remove('active'));
+
+  currentRGB = mode;
+  if (mode !== 'off') {
+    // Set CSS custom properties on each key for animation delays
+    _setKeyVars();
+    kb.classList.add(`rgb-${mode}`);
+  }
+
+  // Highlight active button
+  const btns = document.querySelectorAll('.rgb-btn');
+  const idx = RGB_MODES.indexOf(mode);
+  if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
+
+  SFX.play('click');
+}
+
+function _setKeyVars() {
+  const keys = document.querySelectorAll('.key');
+  const cols = 15, rows = 8;
+  const cx = 7, cy = 3.5; // center of grid
+  let ki = 0;
+  keys.forEach(k => {
+    const col = parseInt(k.dataset.col) || 0;
+    const row = parseInt(k.dataset.row) || 0;
+    // --ki: key index (for breathe stagger)
+    k.style.setProperty('--ki', ki++);
+    // --ci: column index (for wave)
+    k.style.setProperty('--ci', col);
+    // --ri: row index (for rain)
+    k.style.setProperty('--ri', row);
+    // --dist: distance from center (for ripple)
+    const dist = Math.sqrt((col - cx) ** 2 + (row - cy) ** 2);
+    k.style.setProperty('--dist', dist.toFixed(2));
+    // --rand: random 0-1 (for starfield)
+    k.style.setProperty('--rand', Math.random().toFixed(3));
+    // --hue: position-based hue
+    k.style.setProperty('--hue', `${(col * 24 + row * 45) % 360}deg`);
+  });
+}
+
+// ===== Sound Effects (Web Audio API) =====
+const SFX = {
+  ctx: null,
+  _init() {
+    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return this.ctx;
+  },
+  play(type) {
+    try {
+      const ctx = this._init();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const t = ctx.currentTime;
+
+      switch(type) {
+        case 'deal': // card slap — short noise burst
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(200, t);
+          osc.frequency.exponentialRampToValueAtTime(80, t + 0.06);
+          gain.gain.setValueAtTime(0.15, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+          osc.start(t);
+          osc.stop(t + 0.08);
+          break;
+
+        case 'sort': // whoosh sweep
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(800, t);
+          osc.frequency.exponentialRampToValueAtTime(200, t + 0.3);
+          gain.gain.setValueAtTime(0.08, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+          osc.start(t);
+          osc.stop(t + 0.35);
+          break;
+
+        case 'sortDone': // completion chime — two-tone
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523, t); // C5
+          osc.frequency.setValueAtTime(659, t + 0.12); // E5
+          gain.gain.setValueAtTime(0.12, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+          osc.start(t);
+          osc.stop(t + 0.3);
+          break;
+
+        case 'click': // UI click
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1200, t);
+          osc.frequency.exponentialRampToValueAtTime(800, t + 0.03);
+          gain.gain.setValueAtTime(0.06, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+          osc.start(t);
+          osc.stop(t + 0.05);
+          break;
+
+        case 'clear': // reset sweep down
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(600, t);
+          osc.frequency.exponentialRampToValueAtTime(100, t + 0.25);
+          gain.gain.setValueAtTime(0.08, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+          osc.start(t);
+          osc.stop(t + 0.3);
+          break;
+      }
+    } catch(e) {}
+  }
+};
+
+// Patch dealHand to add sound
+const _origDealHand = dealHand;
+dealHand = function() {
+  _origDealHand();
+  // Sound is played inside deal loop, patch the timer callbacks
+};
+
+// Add sounds to deal/sort/clear - rewrite dealHand with SFX
+(function(){
+  const origDeal = window.dealHand;
+  // We'll hook into the existing functions by wrapping setTimeout calls
+  // Actually, let's just add sounds at key points by patching
+
+  // Override dealHand to add deal sounds
+  const _baseDealHand = function() {
+    if (dealTimer) { clearTimeout(dealTimer); dealTimer = null; }
+    const deck = buildDeck();
+    const allKeys = document.querySelectorAll('.key');
+    allKeys.forEach(k => {
+      k.classList.remove('lit', 'dim', 'dark', 'dealing', 'sorted');
+      k.style.transition = 'none';
+      k.style.transform = '';
+      k.style.animation = '';
+    });
+    void document.body.offsetHeight;
+    allKeys.forEach(k => { k.classList.add('dark'); });
+
+    shuffle(deck);
+    const hand = deck.slice(0, 27);
+    const handSet = new Set(hand.map(c => c.idx));
+    const DEAL_INTERVAL = 800;
+
+    hand.forEach((c, i) => {
+      dealTimer = setTimeout(() => {
+        c.el.classList.remove('dark');
+        c.el.style.animation = 'none';
+        void c.el.offsetHeight;
+        c.el.classList.add('dealing');
+        SFX.play('deal'); // card slap sound
+        setTimeout(() => {
+          c.el.classList.remove('dealing');
+          c.el.style.animation = '';
+          c.el.classList.add('lit');
+        }, 420);
+        document.getElementById('hand-info').textContent = `发牌中... ${i + 1} / 27`;
+      }, i * DEAL_INTERVAL);
+    });
+
+    const allDealtTime = hand.length * DEAL_INTERVAL + 500;
+    dealTimer = setTimeout(() => {
+      const counts = {};
+      hand.forEach(c => { counts[c.card] = (counts[c.card] || 0) + 1; });
+      const order = ['大王','小王','2','A','K','Q','J','T','9','8','7','6','5','4','3'];
+      const summary = order.filter(r => counts[r]).map(r => `${r}×${counts[r]}`).join('  ');
+      document.getElementById('hand-info').textContent = `手牌 (27张): ${summary}`;
+      allKeys.forEach(k => {
+        if (k.classList.contains('dark')) {
+          k.classList.remove('dark');
+          k.style.transition = 'all 0.5s';
+          k.classList.add('dim');
+        }
+      });
+      allKeys.forEach(k => { k.style.animation = ''; });
+      dealTimer = setTimeout(() => {
+        document.getElementById('hand-info').textContent += '  ✦ 理牌中...';
+        SFX.play('sort'); // whoosh
+        sortAnimation(handSet, () => {
+          document.getElementById('hand-info').textContent = `手牌 (27张): ${summary}  ✦ 理牌完成`;
+          SFX.play('sortDone'); // chime
+        });
+      }, 1500);
+    }, allDealtTime);
+  };
+
+  window.dealHand = _baseDealHand;
+
+  // Patch clearHand
+  const _origClear = window.clearHand;
+  window.clearHand = function() {
+    SFX.play('clear');
+    _origClear();
+  };
+})();
+
+// Init button state
+setRGB('off');
+</script>
+</body>
+</html>
