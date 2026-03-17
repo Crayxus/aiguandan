@@ -7,30 +7,46 @@
   body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #fff; margin: 20px; }
   h1 { text-align: center; color: #e94560; }
   h2 { text-align: center; color: #aaa; font-weight: normal; }
-  .kb-container { display: flex; justify-content: center; gap: 12px; margin: 30px auto; align-items: stretch; }
-  .keyboard { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .side-panel {
-    display: flex; flex-direction: column; gap: 8px; justify-content: flex-end;
-    padding: 4px 0;
+  .keyboard {
+    display: grid;
+    grid-template-columns: repeat(15, 56px);
+    grid-template-rows: repeat(8, 56px);
+    gap: 4px;
+    margin: 30px auto;
+    width: fit-content;
   }
-  .side-btn {
-    width: 80px; min-height: 80px;
-    border-radius: 12px; border: 2px solid;
-    font-size: 16px; font-weight: 900;
+  /* Integrated action buttons in joker empty area */
+  .kb-action {
+    border-radius: 10px; border: 2px solid;
+    font-size: 15px; font-weight: 900;
     cursor: pointer; user-select: none;
     display: flex; align-items: center; justify-content: center;
     transition: all 0.2s; text-align: center;
     font-family: 'Segoe UI', Arial, sans-serif;
-    line-height: 1.2;
+    line-height: 1.3; box-sizing: border-box;
   }
-  .side-btn:hover { filter: brightness(1.3); transform: scale(1.03); }
-  .side-btn:active { transform: scale(0.97); }
-  .side-btn.btn-casual { background: linear-gradient(135deg, #0a3d2e, #1a7a5a); border-color: #27ae60; color: #82e0aa; }
-  .side-btn.btn-train  { background: linear-gradient(135deg, #1a2a4a, #2a4a7a); border-color: #3498db; color: #85c1e9; }
-  .side-btn.btn-arena  { background: linear-gradient(135deg, #4a1a2a, #7a2a3a); border-color: #e94560; color: #f5a0b0; }
-  .side-btn.btn-pass   { background: linear-gradient(135deg, #2d2d3d, #3d3d4d); border-color: #95a5a6; color: #bdc3c7; min-height: 64px; }
-  .side-btn.btn-play   { background: linear-gradient(135deg, #c0392b, #e94560); border-color: #e94560; color: #fff; min-height: 64px; box-shadow: 0 0 16px rgba(233,69,96,0.4); }
-  .row { display: flex; gap: 4px; }
+  .kb-action:hover { filter: brightness(1.3); }
+  .kb-action:active { filter: brightness(0.9); }
+  .kb-action.btn-mode {
+    grid-column: 1 / 3; grid-row: 1 / 3;
+    background: linear-gradient(135deg, #0a3d2e, #1a6a4a);
+    border-color: #27ae60; color: #82e0aa;
+    font-size: 18px;
+  }
+  .kb-action.btn-pass {
+    grid-column: 1 / 3; grid-row: 3 / 5;
+    background: linear-gradient(135deg, #2d2d3d, #3d3d4d);
+    border-color: #95a5a6; color: #bdc3c7;
+    font-size: 18px;
+  }
+  .kb-action.btn-play {
+    grid-column: 1 / 3; grid-row: 5 / 7;
+    background: linear-gradient(135deg, #c0392b, #e94560);
+    border-color: #e94560; color: #fff;
+    box-shadow: 0 0 16px rgba(233,69,96,0.4);
+    font-size: 18px;
+  }
+  /* .row no longer used — keyboard is CSS Grid */
   .key {
     width: 56px; height: 56px;
     box-sizing: border-box;
@@ -258,16 +274,7 @@
 </div>
 <div id="hand-info"></div>
 
-<div class="kb-container">
-  <div class="side-panel">
-    <div class="side-btn btn-casual">休闲</div>
-    <div class="side-btn btn-train">训练</div>
-    <div class="side-btn btn-arena">竞技</div>
-    <div class="side-btn btn-pass">Pass</div>
-    <div class="side-btn btn-play">出牌</div>
-  </div>
-  <div class="keyboard" id="keyboard"></div>
-</div>
+<div class="keyboard" id="keyboard"></div>
 
 <div class="dimensions" id="dims"></div>
 
@@ -296,31 +303,61 @@ const SUITS = [
   { name: '♦', cls: 'suit-diamond', label: '♦' },
 ];
 
+const MODES = ['休闲','训练','竞技'];
+let currentMode = 0;
+
 function buildKeyboard() {
   const kb = document.getElementById('keyboard');
 
+  // Action buttons in joker empty area (cols 0-1, rows 0-5)
+  const modeBtn = document.createElement('div');
+  modeBtn.className = 'kb-action btn-mode';
+  modeBtn.id = 'mode-btn';
+  modeBtn.textContent = '模式\n' + MODES[currentMode];
+  modeBtn.style.whiteSpace = 'pre-line';
+  modeBtn.onclick = () => {
+    currentMode = (currentMode + 1) % MODES.length;
+    modeBtn.textContent = '模式\n' + MODES[currentMode];
+    SFX.play('click');
+  };
+  kb.appendChild(modeBtn);
+
+  const passBtn = document.createElement('div');
+  passBtn.className = 'kb-action btn-pass';
+  passBtn.textContent = 'Pass';
+  passBtn.onclick = () => SFX.play('click');
+  kb.appendChild(passBtn);
+
+  const playBtn = document.createElement('div');
+  playBtn.className = 'kb-action btn-play';
+  playBtn.textContent = '出牌';
+  playBtn.onclick = () => SFX.play('deal');
+  kb.appendChild(playBtn);
+
+  // Build card keys with explicit grid positions
   let rowIdx = 0;
   for (const suit of SUITS) {
     for (let dup = 0; dup < 2; dup++) {
-      rowIdx++;
-      const row = document.createElement('div');
-      row.className = 'row';
+      const r = rowIdx;
 
-      const r = rowIdx - 1; // 0-based row index
-      // Joker columns: only last 2 rows (6,7) have jokers, others use empty placeholders
+      // Joker keys at rows 6-7 only (row 7 = last row, used by 出牌 area? No, jokers at row index 6-7 = grid-row 7-8)
       if (r >= 6) {
-        row.appendChild(makeKey('大王', `${suit.cls} big-joker`, suit.label, r, 0));
-        row.appendChild(makeKey('小王', `${suit.cls} small-joker`, suit.label, r, 1));
-      } else {
-        row.appendChild(makeEmpty());
-        row.appendChild(makeEmpty());
+        const bk = makeKey('大王', `${suit.cls} big-joker`, suit.label, r, 0);
+        bk.style.gridColumn = '1'; bk.style.gridRow = String(r + 1);
+        kb.appendChild(bk);
+        const sk = makeKey('小王', `${suit.cls} small-joker`, suit.label, r, 1);
+        sk.style.gridColumn = '2'; sk.style.gridRow = String(r + 1);
+        kb.appendChild(sk);
       }
 
-      // 13 rank keys
+      // 13 rank keys (cols 2-14 → grid-column 3-15)
       for (let ci = 0; ci < RANKS.length; ci++) {
-        row.appendChild(makeKey(RANKS[ci], suit.cls, suit.label, r, ci + 2));
+        const k = makeKey(RANKS[ci], suit.cls, suit.label, r, ci + 2);
+        k.style.gridColumn = String(ci + 3);
+        k.style.gridRow = String(r + 1);
+        kb.appendChild(k);
       }
-      kb.appendChild(row);
+      rowIdx++;
     }
   }
 
