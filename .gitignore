@@ -2,3 +2,14 @@ __pycache__/
 *.py[cod]
 *.env
 .env
+
+# STL exports (large binary, regenerate from .scad)
+*.stl
+
+# Bambu Studio
+*.3mf
+*.gcode
+
+# OS
+Thumbs.db
+.DS_Store
